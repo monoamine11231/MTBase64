@@ -1,0 +1,26 @@
+cflags = -std=c++17 -IMTBase64/
+
+rule exec
+  command = g++ $cflags $in -o $out
+
+rule compile
+  command = g++ $cflags -c $in -o $out
+
+rule link_static
+  command = ar rvs $out $in
+
+
+rule compile_so
+  command = g++ $cfllags -c -fpic $in -o $out
+
+rule link_shared
+  command = g++ -shared $in -o $out
+
+
+build build/TestCatch2: exec Tests/Test_MTBase64.cpp build/MTBase64.o | build/MTBase64.o
+
+build build/MTBase64.o: compile MTBase64/MTBase64.cpp
+build build/MTBase64.a: link_static build/MTBase64.o | build/MTBase64.o
+
+build build/MTBase64.so.o: compile_so MTBase64/MTBase64.cpp
+build build/libMTBase64.so: link_shared build/MTBase64.so.o | build/MTBase64.so.o
