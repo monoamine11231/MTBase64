@@ -5,6 +5,8 @@ script_failed() {
   exit 1;
 }
 
+mkdir build 2> /dev/null
+
 option="${1}"
 case ${option} in
   all)
