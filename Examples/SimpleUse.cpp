@@ -17,12 +17,12 @@ int main(int argc, const char **argv) {
 
   /*Encode input */
   if (first_a == "-e") {
-    std::cout << MTBase64::EncodeStr(second_a, MTBase64::kDefaultBase64);
+    std::cout << MTBase64::EncodeCTR(second_a, MTBase64::kDefaultBase64);
     std::cout << std::endl;
     return 0;
   /*Decode input*/
   } else if (first_a == "-d") {
-    std::cout << MTBase64::DecodeStr(second_a, MTBase64::kDefaultBase64);
+    std::cout << MTBase64::DecodeCTR(second_a, MTBase64::kDefaultBase64);
     std::cout << std::endl;
     return 0;
   }
