@@ -31,7 +31,7 @@ const MTBase64::IndexTable MTBase64::kUrlSafeBase64 = MTBase64::IndexTable({
 
 /*Reverse chunking of four 6 bit bytes to three 8 bit bytes by using reverse
 lookup table and padding checking*/
-static void DecodeBase64(uint8_t *dest, const uint8_t *src, const size_t src_len,
+static void DecodeBase64(uint8_t *dest, const uint8_t *src, std::size_t src_len,
                          const MTBase64::IndexTable& table,
                          bool using_padding = true) {
 
@@ -41,7 +41,7 @@ static void DecodeBase64(uint8_t *dest, const uint8_t *src, const size_t src_len
       MTBase64::ErrorCodeTable::kNotValidBase64,
       "Not valid base64 encoding length when padding is being used.");
 
-  if (!using_padding && !MTBase64::ValidUnpaddedEncodingLength(src_len))
+  if (!using_padding && !MTBase64::ValidUnpaddedEncodedLength(src_len))
     throw MTBase64::MTBase64Exception(
       __FILE__, __FUNCTION__, __LINE__,
       MTBase64::ErrorCodeTable::kNotValidBase64,
@@ -85,7 +85,7 @@ static void DecodeBase64(uint8_t *dest, const uint8_t *src, const size_t src_len
 
 /*Splits the encoding process into the encoding of whole 3-byte chunks and the
 encoding of the last 1-2 byte chunk with padding at the end if used*/
-static void EncodeBase64(uint8_t *dest, const uint8_t *src, const size_t src_len,
+static void EncodeBase64(uint8_t *dest, const uint8_t *src, std::size_t src_len,
                          const MTBase64::IndexTable& table,
                          bool using_padding = true) {
 
@@ -132,16 +132,14 @@ static void EncodeBase64(uint8_t *dest, const uint8_t *src, const size_t src_len
 
 }
 
-void MTBase64::DecodeMem(uint8_t *dest, const uint8_t *src,
-                         const size_t src_len,
+void MTBase64::DecodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
                          const IndexTable& table, bool using_padding) {
 
   DecodeBase64(dest, src, src_len, table, using_padding);
 }
 
 
-void MTBase64::EncodeMem(uint8_t *dest, const uint8_t *src,
-                         const size_t src_len,
+void MTBase64::EncodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
                          const IndexTable& table, bool using_padding) {
 
     EncodeBase64(dest, src, src_len, table, using_padding);
@@ -151,7 +149,7 @@ inline bool MTBase64::ValidPaddedEncodedLength(std::size_t encoded_length) {
   return ((encoded_length % 4) == 0) && (encoded_length != 0);
 }
 
-inline bool MTBase64::ValidUnpaddedEncodingLength(std::size_t encoded_length) {
+inline bool MTBase64::ValidUnpaddedEncodedLength(std::size_t encoded_length) {
   return (encoded_length % 4) != 1 && (encoded_length != 0);
 }
 
@@ -180,7 +178,7 @@ std::size_t MTBase64::GetDecodedLength(std::size_t encoded_length,
       MTBase64::ErrorCodeTable::kNotValidBase64,
       "Not valid base64 encoding length when padding is being used.");
 
-  if (!using_padding && !MTBase64::ValidUnpaddedEncodingLength(encoded_length))
+  if (!using_padding && !MTBase64::ValidUnpaddedEncodedLength(encoded_length))
     throw MTBase64::MTBase64Exception(
       __FILE__, __FUNCTION__, __LINE__,
       MTBase64::ErrorCodeTable::kNotValidBase64,
@@ -248,8 +246,8 @@ uint8_t MTBase64::IndexTable::Lookup(uint8_t index) const {
   return this->table_.at(index);
 }
 
-uint8_t MTBase64::IndexTable::ReverseLookup(uint8_t id) const {
-  int16_t ret = this->rw_table_.at(id);
+uint8_t MTBase64::IndexTable::ReverseLookup(uint8_t index) const {
+  int16_t ret = this->rw_table_.at(index);
   if(ret == -1) {
     throw std::out_of_range("Value not in array");
   }

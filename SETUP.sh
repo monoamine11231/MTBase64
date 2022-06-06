@@ -67,6 +67,7 @@ case ${option} in
 
     rm build/TestCatch2 2> /dev/null
     rm build/MTBase64.so.o 2> /dev/null
+    rm build/MTBase64.o 2> /dev/null
 
     echo "SETUP.sh $1: \033[0;32mSCRIPT SUCCESS\033[0m";
     echo "\033[1;33mbuild/CPP_Headers/MTBase64.hpp: Main header file\033[0m"

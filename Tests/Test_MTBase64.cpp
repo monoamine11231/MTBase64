@@ -110,6 +110,45 @@ TEST_CASE("Test MTBase64::MTBase64Exception","[MTBase64::MTBase64Exception]") {
   }
 }
 
+TEST_CASE("Test MTBase64::GetPaddingNum", "[MTBase64::GetPaddingNum]") {
+  const MTBase64::IndexTable table = MTBase64::kDefaultBase64;
+  std::string data1 = "AbD=";
+  std::string data2 = "AbD==";
+  std::string data3 = "AbDe";
+  std::string data4 = "AbDeF===";
+
+  std::vector<char> data5 = {'A', 'b', 'D', '='};
+  std::vector<char> data6 = {'A', 'b', 'D', '=', '='};
+  std::vector<char> data7 = {'A', 'b', 'D', 'e'};
+  std::vector<char> data8 = {'A', 'b', 'D', 'e', 'F', '=', '=', '='};
+
+  std::vector<uint8_t> data9 = {'A', 'b', 'D', '='};
+  std::vector<uint8_t> data10 = {'A', 'b', 'D', '=', '='};
+  std::vector<uint8_t> data11 = {'A', 'b', 'D', 'e'};
+  std::vector<uint8_t> data12 = {'A', 'b', 'D', 'e', 'F', '=', '=', '='};
+
+  REQUIRE(MTBase64::GetPaddingNum(data1, table) == 1);
+  REQUIRE(MTBase64::GetPaddingNum(data2, table) == 2);
+  REQUIRE(MTBase64::GetPaddingNum(data3, table) == 0);
+
+  REQUIRE(MTBase64::GetPaddingNum(data5, table) == 1);
+  REQUIRE(MTBase64::GetPaddingNum(data6, table) == 2);
+  REQUIRE(MTBase64::GetPaddingNum(data7, table) == 0);
+
+  REQUIRE(MTBase64::GetPaddingNum(data9, table) == 1);
+  REQUIRE(MTBase64::GetPaddingNum(data10, table) == 2);
+  REQUIRE(MTBase64::GetPaddingNum(data11, table) == 0);
+
+  REQUIRE_THROWS_AS(MTBase64::GetPaddingNum(data4, table),
+                    MTBase64::MTBase64Exception);
+
+  REQUIRE_THROWS_AS(MTBase64::GetPaddingNum(data8, table),
+                    MTBase64::MTBase64Exception);
+
+  REQUIRE_THROWS_AS(MTBase64::GetPaddingNum(data12, table),
+                    MTBase64::MTBase64Exception);
+}
+
 TEST_CASE("Test MTBase64::ValidPaddedEncodedLength",
           "[MTBase64::ValidPaddedEncodedLength]") {
 
@@ -127,21 +166,21 @@ TEST_CASE("Test MTBase64::ValidPaddedEncodedLength",
   REQUIRE_FALSE(MTBase64::ValidPaddedEncodedLength(7));
 }
 
-TEST_CASE("Test MTBase64::ValidUnpaddedEncodingLength",
-          "[MTBase64::ValidUnpaddedEncodingLength]") {
+TEST_CASE("Test MTBase64::ValidUnpaddedEncodedLength",
+          "[MTBase64::ValidUnpaddedEncodedLength]") {
 
-  REQUIRE(MTBase64::ValidUnpaddedEncodingLength(2));
-  REQUIRE(MTBase64::ValidUnpaddedEncodingLength(3));
-  REQUIRE(MTBase64::ValidUnpaddedEncodingLength(4));
+  REQUIRE(MTBase64::ValidUnpaddedEncodedLength(2));
+  REQUIRE(MTBase64::ValidUnpaddedEncodedLength(3));
+  REQUIRE(MTBase64::ValidUnpaddedEncodedLength(4));
 
-  REQUIRE(MTBase64::ValidUnpaddedEncodingLength(6));
-  REQUIRE(MTBase64::ValidUnpaddedEncodingLength(7));
-  REQUIRE(MTBase64::ValidUnpaddedEncodingLength(8));
+  REQUIRE(MTBase64::ValidUnpaddedEncodedLength(6));
+  REQUIRE(MTBase64::ValidUnpaddedEncodedLength(7));
+  REQUIRE(MTBase64::ValidUnpaddedEncodedLength(8));
 
-  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodingLength(0));
-  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodingLength(1));
-  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodingLength(5));
-  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodingLength(9));
+  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodedLength(0));
+  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodedLength(1));
+  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodedLength(5));
+  REQUIRE_FALSE(MTBase64::ValidUnpaddedEncodedLength(9));
 }
 
 TEST_CASE("Test MTBase64::GetEncodedLength", "[MTBase64::GetEncodedLength]") {

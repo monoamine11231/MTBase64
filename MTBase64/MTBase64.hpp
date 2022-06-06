@@ -56,7 +56,7 @@ public:
   IndexTable(const std::array<uint8_t, 64>& linear_table, uint8_t padding = 0x3D);
 
   uint8_t Lookup(uint8_t index) const;
-  uint8_t ReverseLookup(uint8_t id) const;
+  uint8_t ReverseLookup(uint8_t index) const;
 
   uint8_t GetPadding() const;
 };
@@ -65,7 +65,7 @@ extern const IndexTable kDefaultBase64;
 extern const IndexTable kUrlSafeBase64;
 
 template<typename C>
-uint8_t getPaddingNum(const C& data, const IndexTable& table);
+uint8_t GetPaddingNum(const C& data, const IndexTable& table);
 
 template <template <typename> class Container, typename T>
 Container<T> EncodeCTR(const Container<T>& input, const IndexTable& table,
@@ -77,15 +77,15 @@ Container<T> DecodeCTR(const Container<T>& input, const IndexTable& table,
 
 
 bool ValidPaddedEncodedLength(std::size_t encoded_length);
-bool ValidUnpaddedEncodingLength(std::size_t encoded_length);
+bool ValidUnpaddedEncodedLength(std::size_t encoded_length);
 
 std::size_t GetEncodedLength(std::size_t decoded_length, bool using_padding);
 std::size_t GetDecodedLength(std::size_t encoded_length, bool using_padding,
                              uint8_t padding_num = 0);
 
-void EncodeMem(uint8_t *dest, const uint8_t *src, const size_t src_len,
+void EncodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
                const IndexTable& table, bool using_padding = true);
-void DecodeMem(uint8_t *dest, const uint8_t *src, const size_t src_len,
+void DecodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
                const IndexTable& table, bool using_padding = true);
 
 } /* MTBase64 */

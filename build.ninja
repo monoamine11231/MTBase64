@@ -11,7 +11,7 @@ rule link_static
 
 
 rule compile_so
-  command = g++ $cfllags -c -fpic $in -o $out
+  command = g++ $cflags -c -fpic $in -o $out
 
 rule link_shared
   command = g++ -shared $in -o $out
