@@ -4,7 +4,7 @@
   MTBase64 works on STL containers such as ```std::vector<T>```, ```std::string```, ```std::basic_string<T>``` and raw C memory. Continuous containers with implemented ```Container<T>.size()``` and ```Container<T>.data()``` functions can be also used with MTBase64.  
 <br/>
 
-[![DOCS](https://readthedocs.org/projects/pip/badge/?version=latest&style=flat)](https://github.com/monoamine11231/MTBase64/wiki/DOCS) [![GitHub stars](https://badgen.net/github/stars/monoamine11231/MTBase64/)](https://GitHub.com/monoamine11231/MTBase64/stargazers/) [![Linux](https://svgshare.com/i/Zhy.svg)](https://svgshare.com/i/Zhy.svg) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/monoamine11231/MTBase64/issues)
+[![DOCS](https://readthedocs.org/projects/pip/badge/?version=latest&style=flat)](https://github.com/monoamine11231/MTBase64/wiki/DOCS) [![GitHub stars](https://badgen.net/github/stars/monoamine11231/MTBase64/)](https://GitHub.com/monoamine11231/MTBase64/stargazers/) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/monoamine11231/MTBase64/issues)
 
  ## Why?
  MTBase64 was created to work with Base64 formats that use non-standard Base64 tables and padding without the need of creating new decoders and encoders for a specific Base64 table. MTBase64 makes it possible for the user to choose, use, and create a unique Base64 table for specific purposes.
