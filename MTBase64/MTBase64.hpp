@@ -14,6 +14,12 @@
 #include <cxxabi.h>
 #include <typeinfo>
 
+#include <endian.h>
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+	#error "Not implemented for big endian platforms!"
+#endif
+
 namespace MTBase64 {
 
 enum class ErrorCodeTable
