@@ -1,3 +1,8 @@
+/* Special thanks to:
+ * https://github.com/client9/stringencoders/blob/master/src/modp_b64_gen.c
+ * https://github.com/client9/stringencoders/blob/master/src/modp_b64.c
+ */
+
 #include "MTBase64.hpp"
 
 #include <vector>
@@ -11,6 +16,7 @@
 #include <cmath>
 
 
+#include "Implementations/default.cpp"
 
 
 const MTBase64::IndexTable MTBase64::kDefaultBase64 = MTBase64::IndexTable({
@@ -29,120 +35,17 @@ const MTBase64::IndexTable MTBase64::kUrlSafeBase64 = MTBase64::IndexTable({
 
 
 
-/*Reverse chunking of four 6 bit bytes to three 8 bit bytes by using reverse
-lookup table and padding checking*/
-static void DecodeBase64(uint8_t *dest, const uint8_t *src, std::size_t src_len,
-                         const MTBase64::IndexTable& table,
-                         bool using_padding = true) {
-
-  if (using_padding && !MTBase64::ValidPaddedEncodedLength(src_len))
-    throw MTBase64::MTBase64Exception(
-      __FILE__, __FUNCTION__, __LINE__,
-      MTBase64::ErrorCodeTable::kNotValidBase64,
-      "Not valid base64 encoding length when padding is being used.");
-
-  if (!using_padding && !MTBase64::ValidUnpaddedEncodedLength(src_len))
-    throw MTBase64::MTBase64Exception(
-      __FILE__, __FUNCTION__, __LINE__,
-      MTBase64::ErrorCodeTable::kNotValidBase64,
-      "Not valid base64 encoding length when padding is not being used.");
-
-  uint8_t padding = table.GetPadding();
-  for (size_t e_bc = 0, d_bc = 0; e_bc < src_len;) {
-
-    /*Padding is being used as end of data identifier even when
-    `using_padding = false`*/
-    uint8_t eb1 = src[e_bc++];
-    uint8_t eb2 = src[e_bc++];
-    uint8_t eb3 = (e_bc == src_len) ? padding : src[e_bc++];
-    uint8_t eb4 = (e_bc == src_len) ? padding : src[e_bc++];
-
-    /*Low level stuff */
-    uint8_t to_add = 3 - (eb4 == padding) - (eb3 == padding);
-    /*First use of [[fallthrough]]*/
-    switch (to_add) {
-      case 3:
-        dest[d_bc + 2] = (
-          (table.ReverseLookup(eb3) << 6) | table.ReverseLookup(eb4)
-        );
-        [[fallthrough]];
-      case 2:
-        dest[d_bc + 1] = (
-          (table.ReverseLookup(eb2) << 4) | (table.ReverseLookup(eb3) >> 2)
-        );
-        [[fallthrough]];
-      case 1:
-        dest[d_bc + 0] = (
-          (table.ReverseLookup(eb1) << 2) | (table.ReverseLookup(eb2) >> 4)
-        );
-        [[fallthrough]];
-      default:
-        d_bc += to_add;
-        break;
-    }
-  }
-}
-
-/*Splits the encoding process into the encoding of whole 3-byte chunks and the
-encoding of the last 1-2 byte chunk with padding at the end if used*/
-static void EncodeBase64(uint8_t *dest, const uint8_t *src, std::size_t src_len,
-                         const MTBase64::IndexTable& table,
-                         bool using_padding = true) {
-
-  if(src_len == 0)
-    throw MTBase64::MTBase64Exception(
-      __FILE__, __FUNCTION__, __LINE__,
-      MTBase64::ErrorCodeTable::kIllegalFunctionCall,
-      "input buffer length is 0.");
-
-  uint8_t padding   =  table.GetPadding(),  remainder = src_len % 3;
-  size_t d_bc       = 0,                    e_bc      = 0;
-
-  const uint8_t remainder2padding[] = {0, 2, 1};
-
-  /*The loop bellow encodes only whole chunks of 3 bytes*/
-  while (d_bc < src_len - remainder) {
-    uint8_t db1 = src[d_bc++];
-    uint8_t db2 = src[d_bc++];
-    uint8_t db3 = src[d_bc++];
-
-    dest[e_bc++] = table.Lookup(db1 >> 2);
-    dest[e_bc++] = table.Lookup(((db1 << 4) | (db2 >> 4)) & 0x3f);
-    dest[e_bc++] = table.Lookup(((db2 << 2) | (db3 >> 6)) & 0x3f);
-    dest[e_bc++] = table.Lookup(db3 & 0x3f);
-  }
-
-  if (remainder == 0)  return;
-  /*Rest chunk of 1-2 bytes is being encoded bellow*/
-  uint8_t r_b1 = src[d_bc++];
-  uint8_t r_b2 = (remainder > 1) ? src[d_bc++] : 0x00;
-
-  dest[e_bc++] = table.Lookup(r_b1 >> 2);
-  dest[e_bc++] = table.Lookup(((r_b1 << 4) | (r_b2 >> 4)) & 0x3f);
-
-  if (remainder == 2) {
-    dest[e_bc++] = table.Lookup((r_b2 << 2) & 0x3f);
-  }
-
-  if (!using_padding)  return;
-
-  /*Calculates the amount of padding that is needed from the lookup table*/
-  for (uint8_t pad_c = 0; pad_c < remainder2padding[remainder]; pad_c++)
-    dest[e_bc++] = padding;
-
-}
-
 void MTBase64::DecodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
-                         const IndexTable& table, bool using_padding) {
+                         const IndexTable& table, bool padding) {
 
-  DecodeBase64(dest, src, src_len, table, using_padding);
+  IndexTableAccessor::DecodeBase64(dest, src, src_len, table, padding);
 }
 
 
 void MTBase64::EncodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
-                         const IndexTable& table, bool using_padding) {
+                         const IndexTable& table, bool padding) {
 
-    EncodeBase64(dest, src, src_len, table, using_padding);
+    IndexTableAccessor::EncodeBase64(dest, src, src_len, table, padding);
 }
 
 inline bool MTBase64::ValidPaddedEncodedLength(std::size_t encoded_length) {
@@ -153,32 +56,33 @@ inline bool MTBase64::ValidUnpaddedEncodedLength(std::size_t encoded_length) {
   return (encoded_length % 4) != 1 && (encoded_length != 0);
 }
 
+
 /*Cannot calculate real length without knowing if the last 4 bytes consists of
 padding or encoded data. Real length is being calculated by
 (3 * (encoded_length / 4)) - num_of_padding_chars*/
 std::size_t MTBase64::GetDecodedLength(std::size_t encoded_length,
-                                       bool using_padding,
+                                       bool padding,
                                        uint8_t padding_num) {
 
-  if (!using_padding && padding_num > 0)
+  if (!padding && padding_num > 0)
     throw MTBase64::MTBase64Exception(
       __FILE__, __FUNCTION__, __LINE__,
       MTBase64::ErrorCodeTable::kIllegalFunctionCall,
       "`padding_num` is set when padding is not being used.");
 
-  if (using_padding && padding_num > 2)
+  if (padding && padding_num > 2)
     throw MTBase64::MTBase64Exception(
       __FILE__, __FUNCTION__, __LINE__,
       MTBase64::ErrorCodeTable::kIllegalFunctionCall,
       "Not valid amount of padding is being specified");
 
-  if (using_padding && !MTBase64::ValidPaddedEncodedLength(encoded_length))
+  if (padding && !MTBase64::ValidPaddedEncodedLength(encoded_length))
     throw MTBase64::MTBase64Exception(
       __FILE__, __FUNCTION__, __LINE__,
       MTBase64::ErrorCodeTable::kNotValidBase64,
       "Not valid base64 encoding length when padding is being used.");
 
-  if (!using_padding && !MTBase64::ValidUnpaddedEncodedLength(encoded_length))
+  if (!padding && !MTBase64::ValidUnpaddedEncodedLength(encoded_length))
     throw MTBase64::MTBase64Exception(
       __FILE__, __FUNCTION__, __LINE__,
       MTBase64::ErrorCodeTable::kNotValidBase64,
@@ -189,10 +93,10 @@ std::size_t MTBase64::GetDecodedLength(std::size_t encoded_length,
   It describes how much padding is actually needed to for the base64 data
   without added padding. If padding is used, the variable remains 0 */
   uint8_t fantom_padding_num = 0;
-  if (!using_padding && (encoded_length % 4) != 0 )
+  if (!padding && (encoded_length % 4) != 0 )
     fantom_padding_num = 4 - (encoded_length % 4);
 
-  padding_num = (!using_padding) ? fantom_padding_num : padding_num;
+  padding_num = (!padding) ? fantom_padding_num : padding_num;
 
 
   return 3 * ((encoded_length + fantom_padding_num) / 4) - padding_num;
@@ -202,9 +106,9 @@ std::size_t MTBase64::GetDecodedLength(std::size_t encoded_length,
 adds 4 bytes of padding if a remainder chunk of 1-2 bytes exist that indicates
 a padding at the end*/
 std::size_t MTBase64::GetEncodedLength(std::size_t decoded_length,
-                                       bool using_padding) {
+                                       bool padding) {
 
-  if (using_padding)
+  if (padding)
     return ceil((double)decoded_length / 3) * 4;
 
   return ceil((double)decoded_length * 4 / 3);
@@ -213,14 +117,17 @@ std::size_t MTBase64::GetEncodedLength(std::size_t decoded_length,
 
 
 MTBase64::IndexTable::IndexTable(const std::array<uint8_t, 64>&  linear_table,
-                                 uint8_t padding) : table_(linear_table),
+                                 uint8_t padding) : e(linear_table),
                                  padding_(padding) {
 
-  /*Padding should not be used inside the index table and should be a unique
-  character, this allows the padding char to be used as an identifier for empty
-  slots in the reverse lookup table*/
-  std::fill(this->rw_table_.begin(), this->rw_table_.end(), -1);
-  for(uint8_t i = 0; i < 64; i++) {
+  std::fill(this->d.begin(), this->d.end(), padding);
+  std::fill(this->d0.begin(), this->d0.end(), MTBASE64__BADCHAR);
+  std::fill(this->d1.begin(), this->d1.end(), MTBASE64__BADCHAR);
+  std::fill(this->d2.begin(), this->d2.end(), MTBASE64__BADCHAR);
+  std::fill(this->d3.begin(), this->d3.end(), MTBASE64__BADCHAR);
+
+
+  for (int i = 0; i < 64; ++i) {
     /*Not allowing padding to be used inside lookup table for preventing
     unexcpected errors and bugs (padding should be a unique character)*/
     if(linear_table.at(i) == padding)
@@ -229,29 +136,50 @@ MTBase64::IndexTable::IndexTable(const std::array<uint8_t, 64>&  linear_table,
         MTBase64::ErrorCodeTable::kIllegalFunctionCall,
         "Padding shouldn't be used in base64 lookup table.");
 
+    this->e0.at(i*4+0) = linear_table.at(i);
+    this->e0.at(i*4+1) = linear_table.at(i);
+    this->e0.at(i*4+2) = linear_table.at(i);
+    this->e0.at(i*4+3) = linear_table.at(i);
+
+    this->e1.at(i+0*64) = linear_table.at(i);
+    this->e1.at(i+1*64) = linear_table.at(i);
+    this->e1.at(i+2*64) = linear_table.at(i);
+    this->e1.at(i+3*64) = linear_table.at(i);
+  
+    this->e2.at(i+0*64) = linear_table.at(i);
+    this->e2.at(i+1*64) = linear_table.at(i);
+    this->e2.at(i+2*64) = linear_table.at(i);
+    this->e2.at(i+3*64) = linear_table.at(i);
+
     /*Most effective way to check for multiple occurences in the index table?
     Checks if the empty slot with a padding value was already set before*/
-    int16_t& to_set = this->rw_table_.at(linear_table[i]);
-    if(to_set != -1)
+    if(this->d.at(linear_table.at(i)) != padding)
       throw MTBase64::MTBase64Exception(
         __FILE__, __FUNCTION__, __LINE__,
         MTBase64::ErrorCodeTable::kIllegalFunctionCall,
         "Index table can't have multiple instances of the same character");
-    to_set = i;
+
+
+    /* Little endian only */
+    this->d.at(linear_table.at(i)) = i;
+    this->d0.at(linear_table.at(i)) = i << 2;
+    this->d1.at(linear_table.at(i)) = ((i & 0x30) >> 4) | ((i & 0x0F) << 12);
+    this->d2.at(linear_table.at(i)) = ((i & 0x03) << 22) | ((i & 0x3C) << 6);
+    this->d3.at(linear_table.at(i)) = i << 16;
   }
 }
 
 
 uint8_t MTBase64::IndexTable::Lookup(uint8_t index) const {
-  return this->table_.at(index);
+  return this->e.at(index);
 }
 
 uint8_t MTBase64::IndexTable::ReverseLookup(uint8_t index) const {
-  int16_t ret = this->rw_table_.at(index);
-  if(ret == -1) {
+  uint8_t ret = this->d.at(index);
+  if(ret == this->padding_) {
     throw std::out_of_range("Value not in array");
   }
-  return (uint8_t)ret;
+  return ret;
 }
 
 uint8_t MTBase64::IndexTable::GetPadding() const { return this->padding_; }
