@@ -56,8 +56,13 @@ namespace MTBase64 {
     uint8_t padding_num = GetPaddingNum(input, table);
     std::size_t decoded_length = GetDecodedLength(input.size(), padding,
                                              padding_num);
-    std::shared_ptr<uint8_t> decoded_buffer(new uint8_t[decoded_length],
-                                             std::default_delete<uint8_t[]>());
+    std::shared_ptr<uint8_t> decoded_buffer(static_cast<uint8_t*>(
+                                              std::aligned_alloc(
+                                                alignof(T),
+                                                decoded_length
+                                              )
+                                            ),
+                                            std::default_delete<uint8_t[]>());
 
     DecodeMem(
       decoded_buffer.get(), reinterpret_cast<const uint8_t *>(input.data()),
