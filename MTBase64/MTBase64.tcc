@@ -24,7 +24,12 @@ namespace MTBase64 {
                         bool padding) {
     size_t encoded_length = MTBase64::GetEncodedLength(input.size(),
                                                        padding);
-    std::shared_ptr<uint8_t> encoded_buffer(new uint8_t[encoded_length],
+    std::shared_ptr<uint8_t> encoded_buffer(static_cast<uint8_t*>(
+                                              std::aligned_alloc(
+                                                alignof(T),
+                                                encoded_length
+                                              )
+                                            ),
                                             std::default_delete<uint8_t[]>());
 
     EncodeMem(
