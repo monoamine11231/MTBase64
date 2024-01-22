@@ -8,6 +8,9 @@ struct MTBase64::IndexTableAccessor {
                              const MTBase64::IndexTable& table,
                              bool padding = true) {
 
+        /* `src_len == 0` is taken in account in `MTBase64::ValidPaddedEncodedLength`
+         * and `MTBase64::ValidUnpaddedEncodedLength`
+         */
         if (padding && !MTBase64::ValidPaddedEncodedLength(src_len))
             throw MTBase64::MTBase64Exception(
             __FILE__, __FUNCTION__, __LINE__,
@@ -21,38 +24,106 @@ struct MTBase64::IndexTableAccessor {
             "Not valid base64 encoding length when padding is not being used.");
 
         uint8_t padding_byte = table.GetPadding();
-        for (size_t e_bc = 0, d_bc = 0; e_bc < src_len;) {
+        if (src[src_len-1] != padding_byte && src[src_len-2] == padding_byte)
+            throw MTBase64::MTBase64Exception(
+            __FILE__, __FUNCTION__, __LINE__,
+            MTBase64::ErrorCodeTable::kNotValidBase64,
+            "If the penulminate byte is padding, the last one must be padding too.");    
 
-            /*Padding is being used as end of data identifier even when
-            `padding = false`*/
-            uint8_t eb1 = src[e_bc++];
-            uint8_t eb2 = src[e_bc++];
-            uint8_t eb3 = (e_bc == src_len) ? padding_byte : src[e_bc++];
-            uint8_t eb4 = (e_bc == src_len) ? padding_byte : src[e_bc++];
+        if (padding) {
+            src_len -= src[src_len-1] == padding_byte;
+            src_len -= src[src_len-1] == padding_byte;
+        }
 
-            /*Low level stuff */
-            uint8_t to_add = 3 - (eb4 == padding_byte) - (eb3 == padding_byte);
-            /*First use of [[fallthrough]]*/
-            switch (to_add) {
-            case 3:
-                dest[d_bc + 2] = (
-                (table.ReverseLookup(eb3) << 6) | table.ReverseLookup(eb4)
-                );
-                [[fallthrough]];
-            case 2:
-                dest[d_bc + 1] = (
-                (table.ReverseLookup(eb2) << 4) | (table.ReverseLookup(eb3) >> 2)
-                );
-                [[fallthrough]];
-            case 1:
-                dest[d_bc + 0] = (
-                (table.ReverseLookup(eb1) << 2) | (table.ReverseLookup(eb2) >> 4)
-                );
-                [[fallthrough]];
-            default:
-                d_bc += to_add;
-                break;
-            }
+        /* If the source is % 4 = 0, the last chunk will be treated differently to
+         * prevent overflow due to copying an integer holding 3 valid bytes to the
+         * destination.
+         */
+        std::size_t rest = src_len & 3, chunks = (rest == 0) ? src_len / 4 - 1 : src_len / 4;
+        std::size_t e_bc = 0, d_bc = 0;
+        uint32_t db;
+        uint8_t eb0, eb1, eb2, eb3;
+
+        for (std::size_t ch = 0; ch < chunks; ++ch) {
+            eb0 = src[e_bc++];
+            eb1 = src[e_bc++];
+            eb2 = src[e_bc++];
+            eb3 = src[e_bc++];
+
+            db = table.d0.at(eb0)|table.d1.at(eb1)|table.d2.at(eb2)|table.d3.at(eb3);
+            if (db >= MTBASE64__BADCHAR)
+                throw MTBase64::MTBase64Exception(
+                __FILE__, __FUNCTION__, __LINE__,
+                MTBase64::ErrorCodeTable::kNotValidBase64,
+                "Base64 encoded byte was not found in given table during decoding.");
+        
+            std::memcpy(dest, &db, 4);
+            dest += 3;
+        }
+
+        switch (rest) {
+        case 0: /* We treat the last % 4 = 0 chunk differently to prevent overflow */
+            eb0 = src[e_bc++];
+            eb1 = src[e_bc++];
+            eb2 = src[e_bc++];
+            eb3 = src[e_bc++];
+
+            db = table.d0.at(eb0)|table.d1.at(eb1)|table.d2.at(eb2)|table.d3.at(eb3);
+            if (db >= MTBASE64__BADCHAR)
+                throw MTBase64::MTBase64Exception(
+                __FILE__, __FUNCTION__, __LINE__,
+                MTBase64::ErrorCodeTable::kNotValidBase64,
+                "Base64 encoded byte was not found in given table during decoding.");
+            
+            /* Prevent overflow on the last chunk */
+            std::memcpy(dest, &db, 3);
+            break;
+        case 1:
+            if (padding)
+                throw MTBase64::MTBase64Exception(
+                __FILE__, __FUNCTION__, __LINE__,
+                MTBase64::ErrorCodeTable::kNotValidBase64,
+                "Rest of 1 when decoding paddded data. Something bad happened.");
+            eb0 = src[e_bc];
+            
+            db = table.d0.at(eb0);
+            if (db >= MTBASE64__BADCHAR)
+                throw MTBase64::MTBase64Exception(
+                __FILE__, __FUNCTION__, __LINE__,
+                MTBase64::ErrorCodeTable::kNotValidBase64,
+                "Base64 encoded byte was not found in given table during decoding.");
+
+            std::memcpy(dest, &db, 1);
+            break;
+        case 2:
+            eb0 = src[e_bc++];
+            eb1 = src[e_bc++];
+
+            db = table.d0.at(eb0)|table.d1.at(eb1);
+            if (db >= MTBASE64__BADCHAR)
+                throw MTBase64::MTBase64Exception(
+                __FILE__, __FUNCTION__, __LINE__,
+                MTBase64::ErrorCodeTable::kNotValidBase64,
+                "Base64 encoded byte was not found in given table during decoding.");
+
+            std::memcpy(dest, &db, 1);
+            break;
+        case 3:
+            eb0 = src[e_bc++];
+            eb1 = src[e_bc++];
+            eb2 = src[e_bc++];
+
+            db = table.d0.at(eb0)|table.d1.at(eb1)|table.d2.at(eb2);
+            if (db >= MTBASE64__BADCHAR)
+                throw MTBase64::MTBase64Exception(
+                __FILE__, __FUNCTION__, __LINE__,
+                MTBase64::ErrorCodeTable::kNotValidBase64,
+                "Base64 encoded byte was not found in given table during decoding.");
+
+            std::memcpy(dest, &db, 2);
+            break;
+        default:
+            break;
         }
     }
 

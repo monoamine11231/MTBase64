@@ -24,6 +24,7 @@ namespace MTBase64 {
                         bool padding) {
     size_t encoded_length = MTBase64::GetEncodedLength(input.size(),
                                                        padding);
+    /* Trying to follow the strict aliansing rules of C++ using aligned malloc */
     std::shared_ptr<uint8_t> encoded_buffer(static_cast<uint8_t*>(
                                               std::aligned_alloc(
                                                 alignof(T),
@@ -56,6 +57,7 @@ namespace MTBase64 {
     uint8_t padding_num = GetPaddingNum(input, table);
     std::size_t decoded_length = GetDecodedLength(input.size(), padding,
                                              padding_num);
+    /* Trying to follow the strict aliansing rules of C++ using aligned malloc */
     std::shared_ptr<uint8_t> decoded_buffer(static_cast<uint8_t*>(
                                               std::aligned_alloc(
                                                 alignof(T),

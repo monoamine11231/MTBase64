@@ -519,10 +519,8 @@ TEST_CASE("Test MTBase64::DecodeStr", "[MTBase64::DecodeStr]") {
     REQUIRE_THROWS_AS(MTBase64::DecodeCTR(std::string("?"), table, false),
                       MTBase64::MTBase64Exception);
 
-    /*An exception should be raised from ReverseLookup function because of chars
-    not in the currently used index table*/
     REQUIRE_THROWS_AS(MTBase64::DecodeCTR(std::string("\x01\x02\x03\x04"), table,
-                                          false), std::out_of_range);
+                                          false), MTBase64::MTBase64Exception);
   }
 
   SECTION("Test decoding with used padding and std::string container") {
@@ -869,13 +867,14 @@ TEST_CASE("Test MTBase64::DecodeMem", "[MTBase64::DecodeMem]") {
     REQUIRE_THROWS_AS(MTBase64::DecodeMem(nullptr, nullptr, 1, table, false),
                       MTBase64::MTBase64Exception);
 
-    /*std::out_of_range should be raised when using chars in encoded buffer that
-    are not defined in the used index table. Exception is being raised from
-    ReverseLookup member function in IndexTable class*/
+    /* MTBase64::MTBase64Exception should be raised when using chars in encoded buffer
+     * that are not defined in the used index table. Exception is being raised from
+     * ReverseLookup member function in IndexTable class
+     */
     REQUIRE_THROWS_AS(
       MTBase64::DecodeMem(dest.get(),
                           reinterpret_cast<const uint8_t*>("\x00\x00=="), 4,
-                          table, true), std::out_of_range);
+                          table, true), MTBase64::MTBase64Exception);
   }
 
   SECTION("Test decoding with padding") {
