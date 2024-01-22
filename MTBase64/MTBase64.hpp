@@ -20,6 +20,8 @@
 	#error "Not implemented for big endian platforms!"
 #endif
 
+#define MTBASE64__BADCHAR 0x01FFFFFF
+
 namespace MTBase64 {
 
 enum class ErrorCodeTable
@@ -52,8 +54,18 @@ public:
 class IndexTable
 {
 private:
-  std::array<uint8_t, 64> table_;
-  std::array<int16_t, 256> rw_table_;
+  std::array<uint32_t, 256> d0;
+  std::array<uint32_t, 256> d1;
+  std::array<uint32_t, 256> d2;
+  std::array<uint32_t, 256> d3;
+
+  std::array<uint32_t, 256> e0;
+  std::array<uint32_t, 256> e1;
+  std::array<uint32_t, 256> e2;
+  
+
+  std::array<uint8_t, 64> e;
+  std::array<uint8_t, 256> d;
 
   uint8_t padding_;
 
@@ -65,7 +77,11 @@ public:
   uint8_t ReverseLookup(uint8_t index) const;
 
   uint8_t GetPadding() const;
+
+  friend struct IndexTableAccessor;
 };
+
+struct IndexTableAccessor;
 
 extern const IndexTable kDefaultBase64;
 extern const IndexTable kUrlSafeBase64;
@@ -75,24 +91,24 @@ uint8_t GetPaddingNum(const C& data, const IndexTable& table);
 
 template <template <typename> class Container, typename T>
 Container<T> EncodeCTR(const Container<T>& input, const IndexTable& table,
-                       bool using_padding = true);
+                       bool padding = true);
 
 template <template <typename> class Container, typename T>
 Container<T> DecodeCTR(const Container<T>& input, const IndexTable& table,
-                       bool using_padding = true);
+                       bool padding = true);
 
 
 bool ValidPaddedEncodedLength(std::size_t encoded_length);
 bool ValidUnpaddedEncodedLength(std::size_t encoded_length);
 
-std::size_t GetEncodedLength(std::size_t decoded_length, bool using_padding);
-std::size_t GetDecodedLength(std::size_t encoded_length, bool using_padding,
+std::size_t GetEncodedLength(std::size_t decoded_length, bool padding);
+std::size_t GetDecodedLength(std::size_t encoded_length, bool padding,
                              uint8_t padding_num = 0);
 
 void EncodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
-               const IndexTable& table, bool using_padding = true);
+               const IndexTable& table, bool padding = true);
 void DecodeMem(uint8_t *dest, const uint8_t *src, std::size_t src_len,
-               const IndexTable& table, bool using_padding = true);
+               const IndexTable& table, bool padding = true);
 
 } /* MTBase64 */
 /*Import the template implementation file*/

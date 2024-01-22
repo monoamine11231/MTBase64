@@ -3,3 +3,4 @@
 ManualTests/
 build/
 .git/
+.vscode/**
