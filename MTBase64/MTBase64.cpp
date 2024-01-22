@@ -115,7 +115,6 @@ std::size_t MTBase64::GetEncodedLength(std::size_t decoded_length,
 }
 
 
-
 MTBase64::IndexTable::IndexTable(const std::array<uint8_t, 64>&  linear_table,
                                  uint8_t padding) : e(linear_table),
                                  padding_(padding) {

@@ -68,7 +68,7 @@ struct MTBase64::IndexTableAccessor {
             MTBase64::ErrorCodeTable::kIllegalFunctionCall,
             "input buffer length is 0.");
 
-        uint8_t padding_byte    = table.GetPadding(),  remainder    = src_len % 3;
+        uint8_t padding_byte    = table.GetPadding(),   remainder   = src_len % 3;
         size_t d_bc             = 0,                    e_bc        = 0;
 
 
@@ -93,8 +93,11 @@ struct MTBase64::IndexTableAccessor {
 
             dest[e_bc++] = table.e0.at(db1);
             dest[e_bc++] = table.e1.at((db1 & 0x03) << 4);
-            dest[e_bc++] = padding_byte;
-            dest[e_bc++] = padding_byte;
+
+            if (padding) {
+                dest[e_bc++] = padding_byte;
+                dest[e_bc++] = padding_byte;
+            }
             break;
         case 2:
             db1 = src[d_bc++];
@@ -103,7 +106,10 @@ struct MTBase64::IndexTableAccessor {
             dest[e_bc++] = table.e0.at(db1);
             dest[e_bc++] = table.e1.at(((db1 & 0x03) << 4) | ((db2 >> 4) & 0x0F));
             dest[e_bc++] = table.e2.at((db2 & 0x0F) << 2);
-            dest[e_bc++] = padding_byte;
+            
+            if (padding) {
+                dest[e_bc++] = padding_byte;
+            }
             break;
         default:
             break;
